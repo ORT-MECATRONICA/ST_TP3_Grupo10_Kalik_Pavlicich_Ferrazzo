@@ -173,14 +173,15 @@ if (TiempoAhora - TiempoUltimoCambio2 >= Intervalo && CONTADOR != 0)  ///delay s
 
 //Flag para prender el led cuando supera el umbral y mandar el mensaje por telegram
       if (t >= VALOR_UMBRAL) {
+        digitalWrite(LED1, HIGH);
         if(flag_umbral < 1){
           flag_umbral = 1;
         }
       }
       else {
+        digitalWrite(LED1, LOW);
         flag_umbral = 0;
       }
-
       break;
 
     case ESTADO_CONFIRMACION1:
@@ -269,7 +270,7 @@ void Task1code( void * pvParameters ){
  lectura1 = digitalRead(BOTON1);
   lectura2 = digitalRead(BOTON2);
 
-  Serial.println(CONTADOR);
+  //Serial.println(CONTADOR);
   MAQUINA_DE_ESTADOS();
 
   //bot.sendMessage(CHAT_ID, "Hola, soy Felipe Alfiz, tambien conocido como EL_FOFO_BOT", "");
@@ -292,7 +293,6 @@ void Task2code( void * pvParameters ){
         Serial.printf("Mensaje de %s: %s\n", from_name.c_str(), text.c_str());
 
         if (text == "/temperatura") {
-          float t = dht.readTemperature();
           if (isnan(t)) {
             bot.sendMessage(chat_id, "⚠️ Error al leer la temperatura", "");
           } else {
@@ -311,12 +311,10 @@ void Task2code( void * pvParameters ){
   //Si la temperatura supera el umbral
         if (flag_umbral == 1) {
           bot.sendMessage(CHAT_ID, "La temperatura supero el umbral", "");
-          digitalWrite(LED1, HIGH);
+          
           flag_umbral = 2; // este flag es para que no se repita el mensaje todo el rato
         }
-       if(flag_umbral == 0) {
-        digitalWrite(LED1, LOW);
-      }
+
   }
   
       //vTaskDelay(100 / portTICK_PERIOD_MS); // Pausa de 100 ms Esto reduce la carga del procesador y mejora la estabilidad.
