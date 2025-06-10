@@ -154,6 +154,7 @@ void MAQUINA_DE_ESTADOS() {
   if (TiempoAhora - TiempoUltimoCambio2 >= Intervalo && CONTADOR != 0)  ///delay sin bloqueo
       {
         CONTADOR = 0;
+        TiempoUltimoCambio2 = TiempoAhora;
       }
 
       if (lectura1 == PULSADO && CONTADOR == 0) {
@@ -278,11 +279,11 @@ void Task1code( void * pvParameters ){
   //vTaskDelay(100 / portTICK_PERIOD_MS); // Pausa de 100 ms Esto reduce la carga del procesador y mejora la estabilidad.
 }
 
-//Loop 2
+//Loop 2 (bot de telegram)
 void Task2code( void * pvParameters ){
   for(;;){
     
-    if (millis() - lastTimeBotRan > botRequestDelay) {
+    if (millis() - lastTimeBotRan => botRequestDelay) { //delay sin bloqueo de 2 segundos
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1); //Solicita el mensaje mas reciente
 
     while (numNewMessages) {  //Si hay mensajes nuevos
@@ -291,7 +292,6 @@ void Task2code( void * pvParameters ){
         String chat_id = bot.messages[i].chat_id; //Accede al chat
 
         if (text == "/temperatura") {
-          float t = dht.readTemperature();
           if (isnan(t)) {
             bot.sendMessage(chat_id, "⚠️ Error al leer la temperatura", "");
           } else {
