@@ -10,8 +10,8 @@
 #include <UniversalTelegramBot.h> //Libreria para conectar con telegram
 #include <ArduinoJson.h> //Libreria necesaria para el bot de telegram
 
-TaskHandle_t Task1;
-TaskHandle_t Task2;
+TaskHandle_t Task1; //Loop1
+TaskHandle_t Task2; // Loop2
 
 //Wifi
 const char* ssid = "ORT-IoT";
@@ -83,24 +83,23 @@ void setup() {
   pinMode(LED2, OUTPUT);
 
  xTaskCreatePinnedToCore(
-                    Task1code,   /* Task function. */
-                    "Task1",     /* name of task. */
-                    10000,       /* Stack size of task */
-                    NULL,        /* parameter of the task */
-                    1,           /* priority of the task */
-                    &Task1,      /* Task handle to keep track of created task */
-                    0);          /* pin task to core 0 */                  
+                    Task1code,   //La funcion donde se ejecuta el codigo del loop
+                    "Task1",     //Un nombre
+                    10000,       //El tamaño de memoria que se le asigna a la tarea en bytes o palabras
+                    NULL,        //No pasa ningun dato
+                    1,           //Prioridad de la tarea
+                    &Task1,      //La variable que se define al inicio, permite pausar, elminar, reanudar, o cambiar la prioridad
+                    0);          //El nucleo que va a utilizar           
   delay(500); 
 
-  //create a task that will be executed in the Task2code() function, with priority 1 and executed on core 1
   xTaskCreatePinnedToCore(
-                    Task2code,   /* Task function. */
-                    "Task2",     /* name of task. */
-                    10000,       /* Stack size of task */
-                    NULL,        /* parameter of the task */
-                    1,           /* priority of the task */
-                    &Task2,      /* Task handle to keep track of created task */
-                    1);          /* pin task to core 1 */
+                    Task2code,   //La funcion donde se ejecuta el codigo del loop
+                    "Task2",     //Un nombre
+                    10000,       //El tamaño de memoria que se le asigna a la tarea en bytes o palabras
+                    NULL,        //No pasa ningun dato
+                    1,           //Prioridad de la tarea
+                    &Task2,      //La variable que se define al inicio, permite pausar, elminar, reanudar, o cambiar la prioridad
+                    1);          //El nucleo que va a utilizar 
     delay(500); 
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -151,8 +150,8 @@ void MAQUINA_DE_ESTADOS() {
         display.display();
       }
       
-//Secuencia de botones
-if (TiempoAhora - TiempoUltimoCambio2 >= Intervalo && CONTADOR != 0)  ///delay sin bloqueo
+  //Secuencia de botones
+  if (TiempoAhora - TiempoUltimoCambio2 >= Intervalo && CONTADOR != 0)  ///delay sin bloqueo
       {
         CONTADOR = 0;
       }
@@ -171,10 +170,10 @@ if (TiempoAhora - TiempoUltimoCambio2 >= Intervalo && CONTADOR != 0)  ///delay s
       }
 
 
-//Flag para prender el led cuando supera el umbral y mandar el mensaje por telegram
+  //Flag para prender el led cuando supera el umbral y mandar el mensaje por telegram
       if (t >= VALOR_UMBRAL) {
-        digitalWrite(LED1, HIGH);
-        if(flag_umbral < 1){
+        //digitalWrite(LED1, HIGH);
+        if(flag_umbral == 0){
           flag_umbral = 1;
         }
       }
@@ -182,6 +181,7 @@ if (TiempoAhora - TiempoUltimoCambio2 >= Intervalo && CONTADOR != 0)  ///delay s
         digitalWrite(LED1, LOW);
         flag_umbral = 0;
       }
+
       break;
 
     case ESTADO_CONFIRMACION1:
@@ -270,7 +270,7 @@ void Task1code( void * pvParameters ){
  lectura1 = digitalRead(BOTON1);
   lectura2 = digitalRead(BOTON2);
 
-  //Serial.println(CONTADOR);
+  Serial.println(CONTADOR);
   MAQUINA_DE_ESTADOS();
 
   //bot.sendMessage(CHAT_ID, "Hola, soy Felipe Alfiz, tambien conocido como EL_FOFO_BOT", "");
@@ -278,21 +278,20 @@ void Task1code( void * pvParameters ){
   //vTaskDelay(100 / portTICK_PERIOD_MS); // Pausa de 100 ms Esto reduce la carga del procesador y mejora la estabilidad.
 }
 
+//Loop 2
 void Task2code( void * pvParameters ){
   for(;;){
     
     if (millis() - lastTimeBotRan > botRequestDelay) {
-    int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+    int numNewMessages = bot.getUpdates(bot.last_message_received + 1); //Solicita el mensaje mas reciente
 
-    while (numNewMessages) {
-      for (int i = 0; i < numNewMessages; i++) {
-        String text = bot.messages[i].text;
-        String chat_id = bot.messages[i].chat_id;
-        String from_name = bot.messages[i].from_name;
-
-        Serial.printf("Mensaje de %s: %s\n", from_name.c_str(), text.c_str());
+    while (numNewMessages) {  //Si hay mensajes nuevos
+      for (int i = 0; i < numNewMessages; i++) {//Por cada mensaje
+        String text = bot.messages[i].text; //Recibe el mensaje
+        String chat_id = bot.messages[i].chat_id; //Accede al chat
 
         if (text == "/temperatura") {
+          float t = dht.readTemperature();
           if (isnan(t)) {
             bot.sendMessage(chat_id, "⚠️ Error al leer la temperatura", "");
           } else {
@@ -310,11 +309,13 @@ void Task2code( void * pvParameters ){
   
   //Si la temperatura supera el umbral
         if (flag_umbral == 1) {
+          digitalWrite(LED1, HIGH);
           bot.sendMessage(CHAT_ID, "La temperatura supero el umbral", "");
           
           flag_umbral = 2; // este flag es para que no se repita el mensaje todo el rato
         }
-
+       
+       
   }
   
       //vTaskDelay(100 / portTICK_PERIOD_MS); // Pausa de 100 ms Esto reduce la carga del procesador y mejora la estabilidad.
